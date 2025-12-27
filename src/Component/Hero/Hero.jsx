@@ -1,8 +1,8 @@
 import React from 'react'
-import './hero.css'
+import './Hero.css'
 import { images } from '../../Component/CloundinaryImages/Urls.js';
 
-function hero() {
+function Hero() {
   return (
     <div className="hero container">
       <div className="hero-text">
@@ -14,4 +14,4 @@ function hero() {
   )
 }
 
-export default hero
+export default Hero
