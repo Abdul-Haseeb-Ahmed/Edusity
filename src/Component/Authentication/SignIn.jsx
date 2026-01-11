@@ -5,6 +5,8 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import './Auth.css';
 import { images } from '../CloundinaryImages/Urls';
 import { IoArrowBackOutline } from "react-icons/io5";
+import { useNavigate, Link } from 'react-router-dom';
+
 
 export default function Login() {
   const navigate = useNavigate();
@@ -114,12 +116,12 @@ export default function Login() {
         {errorMessage && <div className="error-message">{errorMessage}</div>}
         
         <p className="link-text">
-          Don't have an account? <a href="/signup">Sign up here</a>
+          Don't have an account? <Link to="/signup">Sign up here</Link>
         </p>
-        <a href="/" className="go-back-link">
+        <Link to="/" className="go-back-link">
           <IoArrowBackOutline className="go-back-icon" />
           Go back to website
-        </a>
+        </Link>
         
       </div>
 
