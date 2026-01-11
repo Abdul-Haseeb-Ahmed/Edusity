@@ -5,8 +5,6 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import './Auth.css';
 import { images } from '../CloundinaryImages/Urls';
 import { IoArrowBackOutline } from "react-icons/io5";
-import { useNavigate, Link } from 'react-router-dom';
-
 
 export default function Login() {
   const navigate = useNavigate();
