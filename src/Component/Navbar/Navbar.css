@@ -16,6 +16,8 @@ nav{
     max-width: 180px;
     height: auto;
     object-fit: contain;
+    margin-left: -45px;
+
 }
 
 nav ul{
@@ -27,7 +29,7 @@ nav ul{
 nav ul li{
     display: inline-block;
     list-style: none;
-    margin: 5px 20px;
+    margin: 5px 8px;
     font-size: 16px;
 }
 
@@ -58,11 +60,63 @@ nav ul li a:hover {
     box-shadow: 0 2px 8px rgba(33, 46, 160, 0.12);
     text-decoration: underline;
 }
+
+/* Auth Buttons Styling */
+.auth-btn {
+    padding: 8px 20px !important;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    white-space: nowrap;
+}
+
+.signin-btn {
+    background: transparent;
+    border: 2px solid #fff !important;
+    color: #fff !important;
+}
+
+.signin-btn:hover {
+    background: #fff !important;
+    color: #212ea0 !important;
+    text-decoration: none !important;
+}
+
+.signup-btn {
+    background: #fff !important;
+    color: #212ea0 !important;
+}
+
+.signup-btn:hover {
+    background: #f0f0f0 !important;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+    text-decoration: none !important;
+}
+
+.dashboard-btn {
+    background: #4CAF50 !important;
+    color: #fff !important;
+}
+
+.dashboard-btn:hover {
+    background: #45a049 !important;
+    text-decoration: none !important;
+}
+
+.logout-btn {
+    background: #f44336 !important;
+    color: #fff !important;
+}
+
+.logout-btn:hover {
+    background: #da190b !important;
+    text-decoration: none !important;
+}
+
 nav ul li a,
 nav ul li .btn {
-  white-space: nowrap;
-}
-nav ul li a {
   white-space: nowrap;
 }
 
@@ -75,7 +129,7 @@ nav ul li a {
     }
 }
 
-/* ✅ Mobile View Fix */
+/* Mobile View Fix */
 @media (max-width: 840px){
     nav{
         padding: 15px 5%;
@@ -87,26 +141,34 @@ nav ul li a {
         bottom: 0;
         background: #212ea0;
         z-index: -1;
-        width: 200px;
+        width: 250px;
         padding-top: 70px;
         transition: 0.5s;
-        flex-direction: column;      /* ✅ Added */
-        align-items: flex-start;     /* ✅ Added */
+        flex-direction: column;
+        align-items: flex-start;
     }
     nav ul li{
         display: block;
         margin: 25px 40px;
+        width: 80%;
     }
+    
+    .auth-btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+    }
+    
     .menu-icon{
         display: block;
         cursor: pointer;
-        width: 28px;                /* ✅ Better size */
+        width: 28px;
         transition: 0.3s;
     }
     .menu-icon:hover{
         transform: scale(1.1);
     }
     .hide-mobile-menu{
-        right: -200px;
+        right: -250px;
     }
 }
