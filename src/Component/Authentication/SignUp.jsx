@@ -134,7 +134,7 @@ export default function Signup() {
           <input
             type="text"
             name="rollNumber"
-            placeholder="Roll Number (e.g (batch)2023F-(dep)BCS-(no)041)"
+            placeholder="Roll No. (e.g: 2023F-BCS-041)"
             value={formData.rollNumber}
             onChange={handleChange}
             required
