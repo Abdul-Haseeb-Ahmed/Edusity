@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { auth } from '../../Config/firebaseConfig';
+import { useNavigate, Link } from 'react-router-dom';
+import { auth, db } from '../../Config/firebaseConfig';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import './Auth.css';
 import { images } from '../CloundinaryImages/Urls';
 import { IoArrowBackOutline } from "react-icons/io5";
@@ -11,6 +12,7 @@ export default function Signup() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    rollNumber: '',
     password: '',
     confirmPassword: ''
   });
@@ -19,9 +21,10 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: name === 'rollNumber' ? value.toUpperCase() : value
     });
   };
 
@@ -29,6 +32,19 @@ export default function Signup() {
     e.preventDefault();
     setErrorMessage('');
     setLoading(true);
+
+    // Validation
+    if (!formData.name || !formData.email || !formData.rollNumber || !formData.password || !formData.confirmPassword) {
+      setErrorMessage('Please fill in all fields!');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.rollNumber.length < 5) {
+      setErrorMessage('Roll number must be at least 5 characters!');
+      setLoading(false);
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setErrorMessage('Passwords do not match!');
@@ -43,7 +59,7 @@ export default function Signup() {
     }
 
     try {
-      // Create user in Firebase
+      // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth, 
         formData.email, 
@@ -55,15 +71,32 @@ export default function Signup() {
         displayName: formData.name
       });
 
-      // Success
+      // Save to Firestore in background (non-blocking)
+      setDoc(doc(db, 'users', userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        name: formData.name,
+        email: formData.email,
+        rollNumber: formData.rollNumber.toUpperCase(),
+        createdAt: new Date().toISOString(),
+        department: 'Not Set',
+        faculty: 'Not Set',
+        batch: 'Not Set',
+        enrolment: 'Not Set'
+      }).catch(err => console.log('Firestore save error (non-critical):', err));
+
+      // Show success immediately
+      setLoading(false);
       setShowModal(true);
+      
+      // Redirect after 1.5 seconds
       setTimeout(() => {
         setShowModal(false);
-        // Use navigate with replace
         navigate('/signin', { replace: true });
       }, 1500);
+
     } catch (error) {
-      // Handle Firebase errors
+      setLoading(false);
+      
       let message = 'An error occurred. Please try again.';
       if (error.code === 'auth/email-already-in-use') {
         message = 'This email is already registered!';
@@ -73,8 +106,6 @@ export default function Signup() {
         message = 'Password is too weak!';
       }
       setErrorMessage(message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -90,12 +121,21 @@ export default function Signup() {
         <h2>Create Your Account</h2>
         <p className="subtitle">Join Edusity Student Portal</p>
         
-        <div className="form-container">
+        <form onSubmit={handleSubmit} className="form-container">
           <input
             type="text"
             name="name"
             placeholder="Full Name"
             value={formData.name}
+            onChange={handleChange}
+            required
+            disabled={loading}
+          />
+          <input
+            type="text"
+            name="rollNumber"
+            placeholder="Roll Number (e.g., 26JOHSXUABD)"
+            value={formData.rollNumber}
             onChange={handleChange}
             required
             disabled={loading}
@@ -128,13 +168,13 @@ export default function Signup() {
             disabled={loading}
           />
           <button 
-            onClick={handleSubmit} 
+            type="submit"
             className="submit-btn"
             disabled={loading}
           >
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
-        </div>
+        </form>
         
         {errorMessage && <div className="error-message">{errorMessage}</div>}
         
@@ -148,11 +188,44 @@ export default function Signup() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="success-icon">✓</div>
-            <h3>Account Created Successfully!</h3>
-            <p>Redirecting to sign in...</p>
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div className="modal-content" style={{
+            background: 'white',
+            padding: '40px',
+            borderRadius: '16px',
+            textAlign: 'center',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+            animation: 'slideUp 0.3s ease'
+          }}>
+            <div className="success-icon" style={{
+              width: '70px',
+              height: '70px',
+              background: '#10b981',
+              color: 'white',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '40px',
+              margin: '0 auto 20px',
+              fontWeight: 'bold'
+            }}>✓</div>
+            <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '10px' }}>
+              Account Created Successfully! 🎉
+            </h3>
+            <p style={{ color: '#6b7280', fontSize: '14px' }}>Redirecting to sign in...</p>
           </div>
         </div>
       )}

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { auth } from '../../Config/firebaseConfig';
+import { useNavigate, Link } from 'react-router-dom';
+import { auth, db } from '../../Config/firebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import './Auth.css';
 import { images } from '../CloundinaryImages/Urls';
 import { IoArrowBackOutline } from "react-icons/io5";
@@ -36,25 +37,72 @@ export default function Login() {
 
     try {
       // Sign in with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      
-      // Set auth flag in localStorage
+      const userCredential = await signInWithEmailAndPassword(
+        auth, 
+        formData.email, 
+        formData.password
+      );
+
+      // Set auth immediately
       localStorage.setItem('edusity_auth', 'true');
-      localStorage.setItem('edusity_user', JSON.stringify({
-        uid: userCredential.user.uid,
-        email: userCredential.user.email,
-        displayName: userCredential.user.displayName
-      }));
       
-      // Success
+      // Try to fetch Firestore data with timeout
+      const fetchWithTimeout = async () => {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 3000)
+        );
+        
+        const firestorePromise = getDoc(doc(db, 'users', userCredential.user.uid));
+        
+        try {
+          const userDoc = await Promise.race([firestorePromise, timeoutPromise]);
+          if (userDoc.exists()) {
+            return userDoc.data();
+          }
+        } catch (err) {
+          console.log('Firestore fetch timeout or error, using Auth data');
+        }
+        return null;
+      };
+
+      // Fetch data in background
+      fetchWithTimeout().then(userData => {
+        const userDataToStore = userData ? {
+          uid: userData.uid,
+          email: userData.email,
+          name: userData.name,
+          rollNumber: userData.rollNumber,
+          department: userData.department || 'Not Set',
+          faculty: userData.faculty || 'Not Set',
+          batch: userData.batch || 'Not Set',
+          enrolment: userData.enrolment || 'Not Set'
+        } : {
+          uid: userCredential.user.uid,
+          email: userCredential.user.email,
+          name: userCredential.user.displayName || 'Student',
+          rollNumber: 'N/A',
+          department: 'Not Set',
+          faculty: 'Not Set',
+          batch: 'Not Set',
+          enrolment: 'Not Set'
+        };
+        
+        localStorage.setItem('edusity_user', JSON.stringify(userDataToStore));
+      });
+
+      // Show success immediately (don't wait for Firestore)
+      setLoading(false);
       setShowModal(true);
+      
+      // Redirect after 1.5 seconds
       setTimeout(() => {
         setShowModal(false);
-        // Use navigate with replace to prevent back button issue
         navigate('/dashboard', { replace: true });
       }, 1500);
+
     } catch (error) {
-      // Handle Firebase errors
+      setLoading(false);
+      
       let message = 'An error occurred. Please try again.';
       if (error.code === 'auth/user-not-found') {
         message = 'No account found with this email!';
@@ -64,10 +112,10 @@ export default function Login() {
         message = 'Invalid email address!';
       } else if (error.code === 'auth/invalid-credential') {
         message = 'Invalid email or password!';
+      } else if (error.code === 'auth/too-many-requests') {
+        message = 'Too many failed attempts. Please try again later.';
       }
       setErrorMessage(message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -83,7 +131,7 @@ export default function Login() {
         <h2>Login to Your Account</h2>
         <p className="subtitle">Welcome back to Student Portal</p>
         
-        <div className="form-container">
+        <form onSubmit={handleSubmit} className="form-container">
           <input
             type="email"
             name="email"
@@ -103,13 +151,13 @@ export default function Login() {
             disabled={loading}
           />
           <button 
-            onClick={handleSubmit} 
+            type="submit"
             className="submit-btn"
             disabled={loading}
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
-        </div>
+        </form>
         
         {errorMessage && <div className="error-message">{errorMessage}</div>}
         
@@ -124,11 +172,44 @@ export default function Login() {
       </div>
 
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="success-icon">✓</div>
-            <h3>Login Successful!</h3>
-            <p>Redirecting to dashboard...</p>
+        <div className="modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div className="modal-content" style={{
+            background: 'white',
+            padding: '40px',
+            borderRadius: '16px',
+            textAlign: 'center',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+            animation: 'slideUp 0.3s ease'
+          }}>
+            <div className="success-icon" style={{
+              width: '70px',
+              height: '70px',
+              background: '#10b981',
+              color: 'white',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '40px',
+              margin: '0 auto 20px',
+              fontWeight: 'bold'
+            }}>✓</div>
+            <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', marginBottom: '10px' }}>
+              Login Successful! 🎉
+            </h3>
+            <p style={{ color: '#6b7280', fontSize: '14px' }}>Redirecting to dashboard...</p>
           </div>
         </div>
       )}

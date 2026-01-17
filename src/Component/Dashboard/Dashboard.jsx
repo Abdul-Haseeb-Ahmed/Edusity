@@ -1,21 +1,60 @@
-import React, { useState } from 'react';
-import { User, BookOpen, Award, FileText, Users, Settings, LogOut, Bell } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, BookOpen, Award, FileText, Users, Settings, LogOut, Bell, Download, Moon, Sun, Calculator, Trophy, TrendingUp } from 'lucide-react';
+import { auth } from '../../Config/firebaseConfig';
+import { useNavigate } from 'react-router-dom';
 
 export default function EdusityPortal() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedSemester, setSelectedSemester] = useState('summer2023');
+  const [darkMode, setDarkMode] = useState(false);
+  const [showGPACalculator, setShowGPACalculator] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   
-  const userData = {
-    name: 'Haseeb Ahmed',
-    email: 'haseeb@student.diu.edu',
-    studentId: '26JOHSXUABD',
+  const [userData, setUserData] = useState({
+    name: 'Student',
+    email: 'student@diu.edu',
+    studentId: 'LOADING...',
     department: 'Department Of English',
     faculty: 'FHSS',
     batch: '40',
     enrolment: 'Spring 2019',
     university: 'Daffodil International University',
-    photo: 'https://ui-avatars.com/api/?name=Haseeb+Ahmed&size=200&background=0D8ABC&color=fff'
-  };
+    photo: 'https://ui-avatars.com/api/?name=Student&size=200&background=0D8ABC&color=fff'
+  });
+
+  // Load user data from localStorage on mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      const storedUser = localStorage.getItem('edusity_user');
+      console.log('📦 Stored user data:', storedUser);
+      
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          console.log('✅ Parsed user data:', user);
+          
+          setUserData({
+            name: user.name || 'Student',
+            email: user.email || 'student@diu.edu',
+            studentId: user.rollNumber || 'N/A',
+            department: user.department || 'Not Set',
+            faculty: user.faculty || 'Not Set',
+            batch: user.batch || 'Not Set',
+            enrolment: user.enrolment || 'Not Set',
+            university: 'Daffodil International University',
+            photo: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'Student')}&size=200&background=0D8ABC&color=fff`
+          });
+        } catch (error) {
+          console.error('❌ Error parsing user data:', error);
+        }
+      } else {
+        console.log('⚠️ No user data found in localStorage');
+      }
+    };
+    
+    loadUserData();
+  }, []);
 
   const courses = {
     summer2023: [
@@ -42,6 +81,12 @@ export default function EdusityPortal() {
     totalPresentation: 4
   };
 
+  const upcomingDeadlines = [
+    { task: 'English Essay Submission', date: '2024-01-20', type: 'Assignment' },
+    { task: 'Psycholinguistics Quiz', date: '2024-01-22', type: 'Quiz' },
+    { task: 'Project Presentation', date: '2024-01-25', type: 'Presentation' }
+  ];
+
   const calculateSGPA = (semester) => {
     const semesterCourses = courses[semester];
     const totalPoints = semesterCourses.reduce((sum, course) => sum + (course.gradePoint * course.credit), 0);
@@ -53,19 +98,47 @@ export default function EdusityPortal() {
     return Math.round((completed / total) * 100);
   };
 
-  const handleLogout = () => {
-    alert('Logout functionality - In real app, this would sign you out');
+  const getAchievements = () => {
+    const achievements = [];
+    if (calculatePercentage(performance.classAttended, performance.totalClasses) >= 90) {
+      achievements.push({ name: 'Perfect Attendance', icon: '🎯', color: 'bg-green-100 text-green-800' });
+    }
+    if (calculateSGPA(selectedSemester) >= 3.8) {
+      achievements.push({ name: 'High Achiever', icon: '🏆', color: 'bg-yellow-100 text-yellow-800' });
+    }
+    if (calculatePercentage(performance.assignmentSubmitted, performance.totalAssignment) >= 85) {
+      achievements.push({ name: 'Assignment Master', icon: '📚', color: 'bg-blue-100 text-blue-800' });
+    }
+    return achievements;
+  };
+
+  const handleLogout = async () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      try {
+        await auth.signOut();
+        localStorage.removeItem('edusity_auth');
+        localStorage.removeItem('edusity_user');
+        navigate('/signin', { replace: true });
+      } catch (error) {
+        console.error('Logout error:', error);
+        alert('Error logging out. Please try again.');
+      }
+    }
+  };
+
+  const downloadResult = () => {
+    alert('Result PDF download feature - In production, this would generate a PDF of your results');
   };
 
   const renderDashboard = () => (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-6 text-white">
         <h2 className="text-2xl font-bold mb-2">Welcome back, {userData.name.split(' ')[0]}! 👋</h2>
-        <p className="opacity-90">Here's your academic overview for this semester</p>
+        <p className="opacity-90">Roll Number: {userData.studentId}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-blue-100 p-3 rounded-lg">
               <BookOpen className="text-blue-600" size={24} />
@@ -75,7 +148,7 @@ export default function EdusityPortal() {
           <h3 className="text-gray-600 text-sm">Enrolled Courses</h3>
         </div>
 
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-green-100 p-3 rounded-lg">
               <Award className="text-green-600" size={24} />
@@ -85,7 +158,7 @@ export default function EdusityPortal() {
           <h3 className="text-gray-600 text-sm">Current SGPA</h3>
         </div>
 
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-purple-100 p-3 rounded-lg">
               <FileText className="text-purple-600" size={24} />
@@ -95,7 +168,7 @@ export default function EdusityPortal() {
           <h3 className="text-gray-600 text-sm">Assignments</h3>
         </div>
 
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-orange-100 p-3 rounded-lg">
               <Users className="text-orange-600" size={24} />
@@ -106,12 +179,30 @@ export default function EdusityPortal() {
         </div>
       </div>
 
+      {/* Achievements Section */}
+      {getAchievements().length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="text-yellow-500" size={24} />
+            <h3 className="text-lg font-bold text-gray-800">Your Achievements</h3>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {getAchievements().map((achievement, idx) => (
+              <div key={idx} className={`${achievement.color} px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2`}>
+                <span>{achievement.icon}</span>
+                <span>{achievement.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Courses</h3>
           <div className="space-y-3">
             {courses[selectedSemester].slice(0, 3).map((course, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="flex items-center space-x-4">
                   <div className="bg-blue-100 p-2 rounded-lg">
                     <BookOpen className="text-blue-600" size={20} />
@@ -131,34 +222,48 @@ export default function EdusityPortal() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Stats</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Quiz Completion</span>
-                <span className="font-semibold">{calculatePercentage(performance.quizTaken, performance.totalQuiz)}%</span>
+          <h3 className="text-lg font-bold text-gray-800 mb-4">Upcoming Deadlines</h3>
+          <div className="space-y-3">
+            {upcomingDeadlines.map((deadline, idx) => (
+              <div key={idx} className="p-3 bg-red-50 border-l-4 border-red-500 rounded">
+                <p className="text-sm font-semibold text-gray-800">{deadline.task}</p>
+                <p className="text-xs text-gray-500">{deadline.date}</p>
+                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">{deadline.type}</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{width: `${calculatePercentage(performance.quizTaken, performance.totalQuiz)}%`}}></div>
-              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-bold text-gray-800 mb-4">Performance Overview</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-gray-600">Quiz Completion</span>
+              <span className="font-semibold">{calculatePercentage(performance.quizTaken, performance.totalQuiz)}%</span>
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Assignment Rate</span>
-                <span className="font-semibold">{calculatePercentage(performance.assignmentSubmitted, performance.totalAssignment)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{width: `${calculatePercentage(performance.assignmentSubmitted, performance.totalAssignment)}%`}}></div>
-              </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full transition-all" style={{width: `${calculatePercentage(performance.quizTaken, performance.totalQuiz)}%`}}></div>
             </div>
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Attendance</span>
-                <span className="font-semibold">{calculatePercentage(performance.classAttended, performance.totalClasses)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-teal-600 h-2 rounded-full" style={{width: `${calculatePercentage(performance.classAttended, performance.totalClasses)}%`}}></div>
-              </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-gray-600">Assignment Rate</span>
+              <span className="font-semibold">{calculatePercentage(performance.assignmentSubmitted, performance.totalAssignment)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-green-600 h-2 rounded-full transition-all" style={{width: `${calculatePercentage(performance.assignmentSubmitted, performance.totalAssignment)}%`}}></div>
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-gray-600">Attendance</span>
+              <span className="font-semibold">{calculatePercentage(performance.classAttended, performance.totalClasses)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-teal-600 h-2 rounded-full transition-all" style={{width: `${calculatePercentage(performance.classAttended, performance.totalClasses)}%`}}></div>
             </div>
           </div>
         </div>
@@ -171,14 +276,23 @@ export default function EdusityPortal() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 space-y-4 md:space-y-0">
           <h2 className="text-2xl font-bold text-gray-800">Live Results</h2>
-          <select
-            value={selectedSemester}
-            onChange={(e) => setSelectedSemester(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="summer2023">Summer 2023</option>
-            <option value="spring2023">Spring 2023</option>
-          </select>
+          <div className="flex gap-3">
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="summer2023">Summer 2023</option>
+              <option value="spring2023">Spring 2023</option>
+            </select>
+            <button
+              onClick={downloadResult}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            >
+              <Download size={18} />
+              Download PDF
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -194,7 +308,7 @@ export default function EdusityPortal() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {courses[selectedSemester].map((course, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
+                <tr key={idx} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm font-medium text-gray-800">{course.code}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{course.title}</td>
                   <td className="px-6 py-4 text-sm text-center text-gray-600">{course.credit}</td>
@@ -263,7 +377,7 @@ export default function EdusityPortal() {
                 <p className="font-semibold text-gray-800">{userData.name}</p>
               </div>
               <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500 uppercase mb-1">Student ID</p>
+                <p className="text-xs text-gray-500 uppercase mb-1">Roll Number</p>
                 <p className="font-semibold text-blue-600">{userData.studentId}</p>
               </div>
               <div className="p-4 bg-gray-50 rounded-lg">
@@ -297,6 +411,78 @@ export default function EdusityPortal() {
     </div>
   );
 
+  const renderSettings = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Settings</h2>
+        
+        <div className="space-y-6">
+          {/* Theme Settings */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="font-semibold text-gray-800 mb-1">Dark Mode</h3>
+                <p className="text-sm text-gray-600">Toggle dark theme (Coming Soon)</p>
+              </div>
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className={`w-14 h-7 rounded-full transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-300'} relative`}
+              >
+                <div className={`w-5 h-5 rounded-full bg-white absolute top-1 transition-transform ${darkMode ? 'translate-x-7' : 'translate-x-1'}`}></div>
+              </button>
+            </div>
+          </div>
+
+          {/* Password Change */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold text-gray-800 mb-2">Change Password</h3>
+            <p className="text-sm text-gray-600 mb-3">Update your account password</p>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Change Password
+            </button>
+          </div>
+
+          {/* Notifications */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold text-gray-800 mb-3">Notification Preferences</h3>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-gray-700">Email notifications for grades</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-gray-700">Assignment deadline reminders</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-gray-700">Weekly performance summary</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Privacy */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold text-gray-800 mb-2">Privacy & Security</h3>
+            <p className="text-sm text-gray-600 mb-3">Manage your privacy settings</p>
+            <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+              Privacy Settings
+            </button>
+          </div>
+
+          {/* Account Actions */}
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <h3 className="font-semibold text-red-800 mb-2">Danger Zone</h3>
+            <p className="text-sm text-red-600 mb-3">Irreversible account actions</p>
+            <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+              Delete Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderContent = () => {
     switch(activeTab) {
       case 'dashboard':
@@ -305,6 +491,8 @@ export default function EdusityPortal() {
         return renderResults();
       case 'profile':
         return renderProfile();
+      case 'settings':
+        return renderSettings();
       default:
         return renderDashboard();
     }
@@ -312,228 +500,128 @@ export default function EdusityPortal() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f3f4f6' }}>
-{/* Sidebar - Fixed */}
-<div
-  style={{
-    width: "256px",
-    backgroundColor: "#111827",
-    color: "white",
-    display: "flex",
-    flexDirection: "column",
-    position: "fixed",
-    left: 0,
-    top: 0,
-    height: "100vh",
-    zIndex: 1000,
-  }}
->
-  {/* Logo / Header */}
-  <div
-    style={{
-      padding: "24px",
-      borderBottom: "1px solid rgba(255,255,255,0.08)",
-      marginBottom: "171px", // 👈 divider ke baad space
-    }}
-  >
-    <h1
-      style={{
-        fontSize: "26px",
-        fontWeight: "bold",
-        margin: 0,
-        marginBottom: "6px",
-        letterSpacing: "-0.5px",
-      }}
-    >
-      Edusity
-    </h1>
-    <p style={{ fontSize: "13px", color: "#9ca3af", margin: 0 }}>
-      Student Portal
-    </p>
-  </div>
-
-  {/* Navigation */}
-  <nav
-    style={{
-      flex: 1,
-      padding: "16px 16px 24px",
-      overflowY: "auto",
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "10px", // 👈 spacing between buttons
-        marginTop: "107px", // 👈 buttons start after divider
-      }}
-    >
-      {/* Dashboard */}
-      <button
-        onClick={() => setActiveTab("dashboard")}
+      {/* Sidebar */}
+      <div
         style={{
-          width: "100%",
+          width: sidebarOpen ? "256px" : "0",
+          backgroundColor: "#111827",
+          color: "white",
           display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          padding: "14px 16px",
-          borderRadius: "10px",
-          backgroundColor:
-            activeTab === "dashboard" ? "#2563eb" : "transparent",
-          color: activeTab === "dashboard" ? "white" : "#d1d5db",
-          border: "none",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-          fontSize: "15px",
-          fontWeight: "500",
-        }}
-        onMouseEnter={(e) => {
-          if (activeTab !== "dashboard")
-            e.currentTarget.style.backgroundColor = "#1f2937";
-        }}
-        onMouseLeave={(e) => {
-          if (activeTab !== "dashboard")
-            e.currentTarget.style.backgroundColor = "transparent";
+          flexDirection: "column",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          height: "100vh",
+          zIndex: 1000,
+          transition: "width 0.3s ease",
+          overflow: "hidden"
         }}
       >
-        <BookOpen size={20} />
-        <span>Dashboard</span>
-      </button>
+        <div style={{ padding: "24px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <h1 style={{ fontSize: "26px", fontWeight: "bold", margin: 0, marginBottom: "6px", letterSpacing: "-0.5px" }}>
+            Edusity
+          </h1>
+          <p style={{ fontSize: "13px", color: "#9ca3af", margin: 0 }}>Student Portal</p>
+        </div>
 
-      {/* Profile */}
-      <button
-        onClick={() => setActiveTab("profile")}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          padding: "14px 16px",
-          borderRadius: "10px",
-          backgroundColor:
-            activeTab === "profile" ? "#2563eb" : "transparent",
-          color: activeTab === "profile" ? "white" : "#d1d5db",
-          border: "none",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-          fontSize: "15px",
-          fontWeight: "500",
-        }}
-        onMouseEnter={(e) => {
-          if (activeTab !== "profile")
-            e.currentTarget.style.backgroundColor = "#1f2937";
-        }}
-        onMouseLeave={(e) => {
-          if (activeTab !== "profile")
-            e.currentTarget.style.backgroundColor = "transparent";
-        }}
-      >
-        <User size={20} />
-        <span>Profile</span>
-      </button>
+        <nav style={{ flex: 1, padding: "24px 16px", overflowY: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "107px"}}>
+            {[
+              { id: 'dashboard', icon: BookOpen, label: 'Dashboard' },
+              { id: 'profile', icon: User, label: 'Profile' },
+              { id: 'results', icon: Award, label: 'Live Results' }
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "14px 16px",
+                  borderRadius: "10px",
+                  backgroundColor: activeTab === item.id ? "#2563eb" : "transparent",
+                  color: activeTab === item.id ? "white" : "#d1d5db",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  fontSize: "15px",
+                  fontWeight: "500"
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== item.id) e.currentTarget.style.backgroundColor = "#1f2937";
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== item.id) e.currentTarget.style.backgroundColor = "transparent";
+                }}
+              >
+                <item.icon size={20} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
 
-      {/* Live Results */}
-      <button
-        onClick={() => setActiveTab("results")}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          padding: "14px 16px",
-          borderRadius: "10px",
-          backgroundColor:
-            activeTab === "results" ? "#2563eb" : "transparent",
-          color: activeTab === "results" ? "white" : "#d1d5db",
-          border: "none",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-          fontSize: "15px",
-          fontWeight: "500",
-        }}
-        onMouseEnter={(e) => {
-          if (activeTab !== "results")
-            e.currentTarget.style.backgroundColor = "#1f2937";
-        }}
-        onMouseLeave={(e) => {
-          if (activeTab !== "results")
-            e.currentTarget.style.backgroundColor = "transparent";
-        }}
-      >
-        <Award size={20} />
-        <span>Live Results</span>
-      </button>
-    </div>
-  </nav>
+        <div style={{ padding: "20px 16px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop:"180px" }}> 
+            <button
+              onClick={() => setActiveTab('settings')}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "14px 16px",
+                borderRadius: "10px",
+                backgroundColor: activeTab === 'settings' ? "#2563eb" : "transparent",
+                color: activeTab === 'settings' ? "white" : "#d1d5db",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                fontSize: "15px",
+                fontWeight: "500"
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== 'settings') e.currentTarget.style.backgroundColor = "#1f2937";
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== 'settings') e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
+              <Settings size={20} />
+              <span>Settings</span>
+            </button>
 
-  {/* Bottom Section */}
-  <div
-    style={{
-      padding: "20px 16px",
-      borderTop: "1px solid rgba(255,255,255,0.08)",
-    }}
-  >
-    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-      <button
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          padding: "14px 16px",
-          borderRadius: "10px",
-          backgroundColor: "transparent",
-          color: "#d1d5db",
-          border: "none",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-          fontSize: "15px",
-          fontWeight: "500",
-        }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.backgroundColor = "#1f2937")
-        }
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.backgroundColor = "transparent")
-        }
-      >
-        <Settings size={20} />
-        <span>Settings</span>
-      </button>
-
-      <button
-        onClick={handleLogout}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          padding: "14px 16px",
-          borderRadius: "10px",
-          backgroundColor: "transparent",
-          color: "#f87171",
-          border: "none",
-          cursor: "pointer",
-          transition: "all 0.2s ease",
-          fontSize: "15px",
-          fontWeight: "500",
-        }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.backgroundColor = "#1f2937")
-        }
-        onMouseLeave={(e) =>
-          (e.currentTarget.style.backgroundColor = "transparent")
-        }
-      >
-        <LogOut size={20} />
-        <span>Logout</span>
-      </button>
-    </div>
-  </div>
-</div>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "14px 16px",
+                borderRadius: "10px",
+                backgroundColor: "transparent",
+                color: "#f87171",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                fontSize: "15px",
+                fontWeight: "500"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#1f2937"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+            >
+              <LogOut size={20} />
+              <span>Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, marginLeft: '256px', display: 'flex', flexDirection: 'column' }}>
-        {/* Header */}
+      <div style={{ flex: 1, marginLeft: sidebarOpen ? '256px' : '0', display: 'flex', flexDirection: 'column', transition: 'margin-left 0.3s ease' }}>
         <header style={{
           backgroundColor: 'white',
           borderBottom: '1px solid #e5e7eb',
@@ -545,11 +633,28 @@ export default function EdusityPortal() {
           top: 0,
           zIndex: 100
         }}>
-          <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
-            {activeTab === 'dashboard' && 'Dashboard'}
-            {activeTab === 'results' && 'Live Results'}
-            {activeTab === 'profile' && 'Student Profile'}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              style={{
+                padding: '8px',
+                backgroundColor: 'transparent',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <BookOpen size={20} style={{ color: '#4b5563' }} />
+            </button>
+            <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#1f2937', margin: 0 }}>
+              {activeTab === 'dashboard' && 'Dashboard'}
+              {activeTab === 'results' && 'Live Results'}
+              {activeTab === 'profile' && 'Student Profile'}
+              {activeTab === 'settings' && 'Settings'}
+            </h2>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <button style={{
               padding: '8px',
@@ -585,7 +690,6 @@ export default function EdusityPortal() {
           </div>
         </header>
 
-        {/* Content Area */}
         <main style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
           {renderContent()}
         </main>
@@ -593,4 +697,3 @@ export default function EdusityPortal() {
     </div>
   );
 }
-// changes karni ha abhi
